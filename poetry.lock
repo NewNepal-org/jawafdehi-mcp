@@ -592,6 +592,18 @@ files = [
 ]
 
 [[package]]
+name = "nepali-datetime"
+version = "1.0.8.4"
+description = "Datetime module that operates on top of Bikram Sambat Date & Nepal Time."
+optional = false
+python-versions = ">=3.5"
+groups = ["main"]
+files = [
+    {file = "nepali_datetime-1.0.8.4-py3-none-any.whl", hash = "sha256:13e052447167f8836618b23cc43bb5f3b259380603defdbfe8efe125f06b8462"},
+    {file = "nepali_datetime-1.0.8.4.tar.gz", hash = "sha256:933af0ae4545ee32bc2cdaeff40aa90c067f0f7c91908350371303c3dd976a6f"},
+]
+
+[[package]]
 name = "packaging"
 version = "26.0"
 description = "Core utilities for Python packages"
@@ -1413,4 +1425,4 @@ standard = ["colorama (>=0.4) ; sys_platform == \"win32\"", "httptools (>=0.6.3)
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "ac8cc4f7844540a0867d567231a86245925bdc41b5bcd311786caaf472cc4209"
+content-hash = "ee957028273533af708a61c91e4cbef7bf16b9e191237a6b00faaca0b4f31687"

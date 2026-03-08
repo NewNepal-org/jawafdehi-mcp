@@ -8,6 +8,7 @@ from mcp.types import TextContent, Tool
 
 from .tools import (
     BaseTool,
+    DateConverterTool,
     GetJawafdehiCaseTool,
     NGMJudicialTool,
     SearchJawafdehiCasesTool,
@@ -25,6 +26,7 @@ TOOLS: list[BaseTool] = [
     SearchNESEntitiesTool(),
     GetNESEntitiesTool(),
     GetNESTagsTool(),
+    DateConverterTool(),
 ]
 
 # Create tool name to instance mapping
