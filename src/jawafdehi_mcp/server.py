@@ -6,7 +6,12 @@ from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
 
-from .tools import BaseTool, NGMJudicialTool
+from .tools import (
+    BaseTool,
+    GetJawafdehiCaseTool,
+    NGMJudicialTool,
+    SearchJawafdehiCasesTool,
+)
 
 # Initialize MCP server
 app = Server("jawafdehi-mcp")
@@ -14,6 +19,8 @@ app = Server("jawafdehi-mcp")
 # Registry of available tools
 TOOLS: list[BaseTool] = [
     NGMJudicialTool(),
+    SearchJawafdehiCasesTool(),
+    GetJawafdehiCaseTool(),
 ]
 
 # Create tool name to instance mapping
