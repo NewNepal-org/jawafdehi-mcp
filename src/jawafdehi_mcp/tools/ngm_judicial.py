@@ -30,10 +30,29 @@ class NGMJudicialTool(BaseTool):
     @property
     def description(self) -> str:
         return (
-            "Search judicial cases from Nepal's court system. "
-            "Execute SELECT queries against NGM court and court case "
-            "tables. Supports: courts, court_cases, court_case_hearings, "
-            "court_case_entities. Requires NGM_DATABASE_URL env var."
+            "Search judicial cases from Nepal's court system. Execute SELECT "
+            "queries against NGM court and court case tables.\n\n"
+            "Table Schemas:\n"
+            "- courts: identifier (PK), court_type, full_name_nepali, "
+            "full_name_english, created_at, updated_at\n"
+            "- court_cases: case_number (PK), court_identifier (PK), "
+            "registration_date_bs, registration_date_ad, case_type, division, "
+            "category, section, plaintiff, defendant, original_case_number, "
+            "case_id, priority, registration_number, case_status, verdict_date_bs, "
+            "verdict_date_ad, verdict_judge, status, extra_data\n"
+            "- court_case_hearings: id (PK), case_number, court_identifier, "
+            "hearing_date_bs, hearing_date_ad, bench, bench_type, judge_names, "
+            "lawyer_names, serial_no, case_status, decision_type, remarks, "
+            "extra_data\n"
+            "- court_case_entities: id (PK), case_number, court_identifier, side, "
+            "name, address, nes_id\n\n"
+            "Court IDs (court_identifier):\n"
+            "- Supreme & Special: supreme, special\n"
+            "- High Courts: biratnagarhc, illamhc, dhankutahc, okhaldhungahc, "
+            "janakpurhc, rajbirajhc, birganjhc, patanhc, hetaudahc, pokharahc, "
+            "baglunghc, tulsipurhc, butwalhc, nepalgunjhc, surkhethc, jumlahc, "
+            "dipayalhc, mahendranagarhc\n"
+            "- District Courts: achhamdc, argakhanchidc, etc."
         )
 
     @property
