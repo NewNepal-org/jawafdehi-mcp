@@ -2,6 +2,7 @@
 
 from .base import BaseTool
 from .jawafdehi_cases import GetJawafdehiCaseTool, SearchJawafdehiCasesTool
+from .nes import GetNESEntitiesTool, GetNESTagsTool, SearchNESEntitiesTool
 from .ngm_judicial import NGMJudicialTool
 
 __all__ = [
@@ -9,4 +10,7 @@ __all__ = [
     "NGMJudicialTool",
     "SearchJawafdehiCasesTool",
     "GetJawafdehiCaseTool",
+    "SearchNESEntitiesTool",
+    "GetNESEntitiesTool",
+    "GetNESTagsTool",
 ]

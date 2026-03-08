@@ -12,6 +12,7 @@ from .tools import (
     NGMJudicialTool,
     SearchJawafdehiCasesTool,
 )
+from .tools.nes import GetNESEntitiesTool, GetNESTagsTool, SearchNESEntitiesTool
 
 # Initialize MCP server
 app = Server("jawafdehi-mcp")
@@ -21,6 +22,9 @@ TOOLS: list[BaseTool] = [
     NGMJudicialTool(),
     SearchJawafdehiCasesTool(),
     GetJawafdehiCaseTool(),
+    SearchNESEntitiesTool(),
+    GetNESEntitiesTool(),
+    GetNESTagsTool(),
 ]
 
 # Create tool name to instance mapping
