@@ -10,6 +10,7 @@ from .tools import (
     BaseTool,
     DateConverterTool,
     GetJawafdehiCaseTool,
+    LikhitExtractTool,
     NGMJudicialTool,
     SearchJawafdehiCasesTool,
 )
@@ -27,6 +28,7 @@ TOOLS: list[BaseTool] = [
     GetNESEntitiesTool(),
     GetNESTagsTool(),
     DateConverterTool(),
+    LikhitExtractTool(),
 ]
 
 # Create tool name to instance mapping
