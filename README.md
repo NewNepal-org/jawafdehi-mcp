@@ -6,6 +6,15 @@ Model Context Protocol (MCP) server providing tools for querying Nepal's judicia
 
 - Modular tool architecture for easy extension
 - `ngm_query_judicial`: Execute SELECT queries against NGM court and court case tables
+- `ngm_extract_case_data`: Extract complete judicial case information to Markdown
+- `search_jawafdehi_cases`: Search published Jawafdehi accountability cases
+- `get_jawafdehi_case`: Retrieve detailed case information
+- `search_nes_entities`: Search Nepal Entity Service for persons and organizations
+- `get_nes_entities`: Retrieve complete entity profiles
+- `get_nes_tags`: Fetch all available entity tags
+- `convert_date`: Convert dates between AD and BS calendars
+- `likhit_extract`: Convert Nepal government PDFs to structured Markdown
+- `convert_to_markdown`: Convert documents (DOCX, PPTX, XLSX, PDFs, web pages) to Markdown
 - Read-only access with query validation
 - Timeout protection (default 15s)
 - Comprehensive error handling
