@@ -11,6 +11,7 @@ from .tools import (
     DateConverterTool,
     GetJawafdehiCaseTool,
     LikhitExtractTool,
+    NGMExtractCaseDataTool,
     NGMJudicialTool,
     SearchJawafdehiCasesTool,
 )
@@ -22,6 +23,7 @@ app = Server("jawafdehi-mcp")
 # Registry of available tools
 TOOLS: list[BaseTool] = [
     NGMJudicialTool(),
+    NGMExtractCaseDataTool(),
     SearchJawafdehiCasesTool(),
     GetJawafdehiCaseTool(),
     SearchNESEntitiesTool(),
