@@ -35,9 +35,7 @@ class TestCreateJawafdehiCaseTool:
     async def test_requires_token(self, monkeypatch):
         monkeypatch.delenv("JAWAFDEHI_API_TOKEN", raising=False)
 
-        result = await self.tool.execute(
-            {"title": "Case", "case_type": "CORRUPTION"}
-        )
+        result = await self.tool.execute({"title": "Case", "case_type": "CORRUPTION"})
 
         assert "JAWAFDEHI_API_TOKEN" in result[0].text
 
@@ -136,9 +134,7 @@ class TestPatchJawafdehiCaseTool:
         result = await self.tool.execute(
             {
                 "case_id": 3,
-                "operations": [
-                    {"op": "replace", "path": "/title", "value": "Updated"}
-                ],
+                "operations": [{"op": "replace", "path": "/title", "value": "Updated"}],
             }
         )
 
@@ -192,9 +188,7 @@ class TestPatchJawafdehiCaseTool:
             result = await self.tool.execute(
                 {
                     "case_id": 999,
-                    "operations": [
-                        {"op": "replace", "path": "/title", "value": "x"}
-                    ],
+                    "operations": [{"op": "replace", "path": "/title", "value": "x"}],
                 }
             )
 
