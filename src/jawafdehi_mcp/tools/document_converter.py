@@ -7,8 +7,7 @@ and MarkItDown (for general documents) based on the input parameters.
 from pathlib import Path
 from typing import Any
 
-from likhit import extractors
-from likhit.core import render_markdown
+import likhit
 from markitdown import MarkItDown
 from mcp.types import TextContent
 
@@ -16,6 +15,11 @@ from .base import BaseTool
 
 # Supported Likhit document types
 LIKHIT_SUPPORTED_TYPES = ["ciaa-press-release"]
+
+try:
+    from likhit.core import render_markdown as likhit_render_markdown
+except ImportError:
+    likhit_render_markdown = None
 
 
 class DocumentConverterTool(BaseTool):
@@ -186,15 +190,23 @@ class DocumentConverterTool(BaseTool):
         doc_type = arguments.get("doc_type")
 
         try:
-            result = extract(
-                file_path,
-                doc_type,
-                title=arguments.get("title"),
-                publication_date=arguments.get("publication_date"),
-                source_url=arguments.get("source_url"),
-                pages=arguments.get("pages"),
-            )
-            markdown = render_markdown(result)
+            extract_fn = getattr(likhit, "extract", None)
+            convert_fn = getattr(likhit, "convert", None)
+
+            if extract_fn and likhit_render_markdown:
+                result = extract_fn(
+                    file_path,
+                    doc_type,
+                    title=arguments.get("title"),
+                    publication_date=arguments.get("publication_date"),
+                    source_url=arguments.get("source_url"),
+                    pages=arguments.get("pages"),
+                )
+                markdown = likhit_render_markdown(result)
+            elif convert_fn:
+                markdown = convert_fn(file_path)
+            else:
+                raise RuntimeError("Installed likhit package does not expose a supported API.")
             return markdown, None
         except Exception as e:
             return "", str(e)

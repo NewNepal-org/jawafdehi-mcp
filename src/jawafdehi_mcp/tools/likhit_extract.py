@@ -3,11 +3,15 @@
 from pathlib import Path
 from typing import Any
 
-from likhit import extract
-from likhit.core import render_markdown
+import likhit
 from mcp.types import TextContent
 
 from .base import BaseTool
+
+try:
+    from likhit.core import render_markdown as likhit_render_markdown
+except ImportError:
+    likhit_render_markdown = None
 
 
 class LikhitExtractTool(BaseTool):
@@ -101,15 +105,25 @@ class LikhitExtractTool(BaseTool):
             ]
 
         try:
-            result = extract(
-                str(path),
-                doc_type,
-                title=arguments.get("title"),
-                publication_date=arguments.get("publication_date"),
-                source_url=arguments.get("source_url"),
-                pages=arguments.get("pages"),
-            )
-            markdown = render_markdown(result)
+            extract_fn = getattr(likhit, "extract", None)
+            convert_fn = getattr(likhit, "convert", None)
+
+            if extract_fn and likhit_render_markdown:
+                result = extract_fn(
+                    str(path),
+                    doc_type,
+                    title=arguments.get("title"),
+                    publication_date=arguments.get("publication_date"),
+                    source_url=arguments.get("source_url"),
+                    pages=arguments.get("pages"),
+                )
+                markdown = likhit_render_markdown(result)
+            elif convert_fn:
+                markdown = convert_fn(str(path))
+            else:
+                raise RuntimeError(
+                    "Installed likhit package does not expose a supported API."
+                )
 
             output_path = arguments.get("output_path")
             if output_path:

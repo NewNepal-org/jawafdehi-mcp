@@ -80,18 +80,11 @@ class TestDocumentConverterTool:
         pdf_file.write_bytes(b"%PDF-1.4 fake content")
 
         fake_markdown = "---\ntitle: CIAA Press Release\n---\n\nContent\n"
-        mock_result = MagicMock()
 
-        with (
-            patch(
-                "jawafdehi_mcp.tools.document_converter.extract",
-                return_value=mock_result,
-            ) as mock_extract,
-            patch(
-                "jawafdehi_mcp.tools.document_converter.render_markdown",
-                return_value=fake_markdown,
-            ),
-        ):
+        with patch(
+            "jawafdehi_mcp.tools.document_converter.likhit.convert",
+            return_value=fake_markdown,
+        ) as mock_convert:
             result = await self.tool.execute(
                 {
                     "file_path": str(pdf_file),
@@ -103,7 +96,7 @@ class TestDocumentConverterTool:
         assert len(result) == 1
         assert "Likhit" in result[0].text
         assert fake_markdown in result[0].text
-        mock_extract.assert_called_once()
+        mock_convert.assert_called_once_with(str(pdf_file))
 
     @pytest.mark.asyncio
     async def test_likhit_fallback_to_markitdown(self, tmp_path):
@@ -117,7 +110,7 @@ class TestDocumentConverterTool:
 
         with (
             patch(
-                "jawafdehi_mcp.tools.document_converter.extract",
+                "jawafdehi_mcp.tools.document_converter.likhit.convert",
                 side_effect=Exception("Likhit extraction failed"),
             ),
             patch(
@@ -161,7 +154,6 @@ class TestDocumentConverterTool:
         assert len(result) == 1
         assert "MarkItDown" in result[0].text
         assert fake_markdown in result[0].text
-        # Should convert file path to file:// URI
         mock_converter.convert_uri.assert_called_once()
         call_args = mock_converter.convert_uri.call_args[0][0]
         assert call_args.startswith("file://")
@@ -215,9 +207,7 @@ class TestDocumentConverterTool:
 
         assert len(result) == 1
         assert "written to" in result[0].text.lower()
-        # Verify markdown content is NOT included in the response
         assert fake_markdown not in result[0].text
-        # Verify file was written correctly
         assert output_file.exists()
         assert output_file.read_text(encoding="utf-8") == fake_markdown
 
@@ -262,28 +252,18 @@ class TestDocumentConverterTool:
 
         assert len(result) == 1
         assert "MarkItDown" in result[0].text
-        # Should validate file exists
         assert "Error" not in result[0].text
 
     @pytest.mark.asyncio
-    async def test_likhit_parameters_passed_correctly(self, tmp_path):
-        """Test that Likhit-specific parameters are passed correctly."""
+    async def test_likhit_parameters_ignored_by_new_api(self, tmp_path):
+        """The current public likhit API only accepts a file path."""
         pdf_file = tmp_path / "ciaa.pdf"
         pdf_file.write_bytes(b"%PDF-1.4 fake")
 
-        fake_markdown = "---\ntitle: Test\n---\n\nContent\n"
-        mock_result = MagicMock()
-
-        with (
-            patch(
-                "jawafdehi_mcp.tools.document_converter.extract",
-                return_value=mock_result,
-            ) as mock_extract,
-            patch(
-                "jawafdehi_mcp.tools.document_converter.render_markdown",
-                return_value=fake_markdown,
-            ),
-        ):
+        with patch(
+            "jawafdehi_mcp.tools.document_converter.likhit.convert",
+            return_value="# Converted\n",
+        ) as mock_convert:
             await self.tool.execute(
                 {
                     "file_path": str(pdf_file),
@@ -295,14 +275,7 @@ class TestDocumentConverterTool:
                 }
             )
 
-        mock_extract.assert_called_once_with(
-            str(pdf_file),
-            "ciaa-press-release",
-            title="Custom Title",
-            publication_date="2024-01-15",
-            source_url="https://ciaa.gov.np/123",
-            pages="1-3",
-        )
+        mock_convert.assert_called_once_with(str(pdf_file))
 
     @pytest.mark.asyncio
     async def test_default_doc_type_auto(self, tmp_path):
@@ -325,5 +298,4 @@ class TestDocumentConverterTool:
 
         assert len(result) == 1
         assert "MarkItDown" in result[0].text
-        # Should not attempt Likhit
         assert "Likhit" not in result[0].text
