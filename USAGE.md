@@ -13,6 +13,7 @@ poetry install
 
 ```bash
 export NGM_DATABASE_URL="postgresql://user:password@host:5432/ngm_database"
+export JAWAFDEHI_API_BASE_URL="https://portal.jawafdehi.org"
 export JAWAFDEHI_API_TOKEN="your-jawafdehi-api-token"
 ```
 
@@ -35,6 +36,7 @@ Add to your MCP client's configuration file (e.g., `.kiro/settings/mcp.json`):
       "cwd": "/absolute/path/to/services/jawafdehi-mcp",
       "env": {
         "NGM_DATABASE_URL": "postgresql://user:password@host:5432/database",
+        "JAWAFDEHI_API_BASE_URL": "https://portal.jawafdehi.org",
         "JAWAFDEHI_API_TOKEN": "your-jawafdehi-api-token"
       }
     }

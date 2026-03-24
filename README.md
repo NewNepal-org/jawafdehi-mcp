@@ -65,6 +65,7 @@ Set the required environment variables:
 
 ```bash
 export NGM_DATABASE_URL="postgresql://user:password@host:5432/database"
+export JAWAFDEHI_API_BASE_URL="https://portal.jawafdehi.org"
 export JAWAFDEHI_API_TOKEN="your-jawafdehi-api-token"
 ```
 
@@ -83,6 +84,7 @@ Add to your MCP client configuration:
       "cwd": "/path/to/services/jawafdehi-mcp",
       "env": {
         "NGM_DATABASE_URL": "postgresql://user:password@host:5432/database",
+        "JAWAFDEHI_API_BASE_URL": "https://portal.jawafdehi.org",
         "JAWAFDEHI_API_TOKEN": "your-jawafdehi-api-token"
       }
     }
@@ -106,7 +108,9 @@ The tool uses `JAWAFDEHI_API_BASE_URL` for the API host and requires
 
 Use `get_nes_entity_prefixes` to fetch the currently valid NES entity prefixes,
 and `get_nes_entity_prefix_schema` to fetch the JSON schema for one prefix such
-as `person` or `organization/political_party`.
+as `person` or `organization/political_party`. Prefixes containing slashes
+(e.g. `organization/political_party`) are automatically URL-encoded by the tool
+before being sent in the request path.
 
 These tools read from `NES_API_BASE_URL`, which defaults to
 `https://nes.newnepal.org`.
