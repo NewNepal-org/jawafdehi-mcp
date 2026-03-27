@@ -29,7 +29,17 @@ def rows_to_dicts(payload: dict[str, Any]) -> list[dict[str, Any]]:
     data = payload.get("data") or {}
     columns = data.get("columns") or []
     rows = data.get("rows") or []
-    return [dict(zip(columns, row)) for row in rows]
+    records: list[dict[str, Any]] = []
+    for index, row in enumerate(rows):
+        if not isinstance(row, list) or len(row) != len(columns):
+            raise RuntimeError(
+                "Malformed proxy payload: "
+                f"row {index} has "
+                f"{len(row) if isinstance(row, list) else 'non-list'} values "
+                f"for {len(columns)} columns"
+            )
+        records.append(dict(zip(columns, row)))
+    return records
 
 
 def sql_quote(value: str) -> str:

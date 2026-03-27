@@ -130,7 +130,24 @@ Court IDs (court_identifier):
         """Execute the NGM judicial query tool."""
         # Extract arguments
         query = arguments.get("query")
-        timeout = arguments.get("timeout", 15)
+        raw_timeout = arguments.get("timeout", 15)
+
+        # Validate and clamp timeout
+        try:
+            timeout = float(raw_timeout)
+        except (TypeError, ValueError):
+            error_response = (
+                '{"success": false, "data": null, '
+                '"error": "timeout must be a number", "query_time_ms": 0}'
+            )
+            return [TextContent(type="text", text=error_response)]
+        if timeout <= 0:
+            error_response = (
+                '{"success": false, "data": null, '
+                '"error": "timeout must be greater than 0", "query_time_ms": 0}'
+            )
+            return [TextContent(type="text", text=error_response)]
+        timeout = min(timeout, 15.0)
 
         if not query:
             error_response = (
@@ -158,13 +175,27 @@ Court IDs (court_identifier):
                     base_url,
                     token,
                     query,
-                    timeout=float(timeout),
+                    timeout=timeout,
                 )
 
+            # Wrap in stable tool-owned envelope
+            proxy_data = payload.get("data") or {}
+            response = {
+                "success": True,
+                "data": {
+                    "columns": proxy_data.get("columns", []),
+                    "rows": proxy_data.get("rows", []),
+                    "row_count": proxy_data.get(
+                        "row_count", len(proxy_data.get("rows", []))
+                    ),
+                },
+                "error": None,
+                "query_time_ms": payload.get("query_time_ms", 0),
+            }
             return [
                 TextContent(
                     type="text",
-                    text=json.dumps(payload, ensure_ascii=False),
+                    text=json.dumps(response, ensure_ascii=False),
                 )
             ]
         except RuntimeError as e:

@@ -327,6 +327,10 @@ Court IDs (court_identifier):
             error_msg = str(e).replace('"', '\\"')
             error_response = f'{{"success": false, "error": "HTTP error: {error_msg}"}}'
             return [TextContent(type="text", text=error_response)]
+        except RuntimeError as e:
+            error_msg = str(e).replace('"', '\\"')
+            error_response = f'{{"success": false, "error": "Proxy error: {error_msg}"}}'
+            return [TextContent(type="text", text=error_response)]
         except Exception as e:
             error_msg = str(e).replace('"', '\\"')
             error_response = (
