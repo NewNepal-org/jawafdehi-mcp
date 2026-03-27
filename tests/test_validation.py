@@ -108,32 +108,36 @@ class TestEnvironmentValidation:
         """Set up test fixtures."""
         self.tool = NGMJudicialTool()
 
-    def test_missing_database_url(self, monkeypatch):
-        """Test that missing NGM_DATABASE_URL raises error."""
-        monkeypatch.delenv("NGM_DATABASE_URL", raising=False)
+    def test_missing_api_token(self, monkeypatch):
+        """Test that missing JAWAFDEHI_API_TOKEN raises error."""
+        monkeypatch.delenv("JAWAFDEHI_API_TOKEN", raising=False)
 
-        with pytest.raises(ValueError, match="NGM_DATABASE_URL.*required"):
+        with pytest.raises(ValueError, match="JAWAFDEHI_API_TOKEN.*required"):
             self.tool._validate_environment()
 
-    def test_invalid_database_url(self, monkeypatch):
-        """Test that non-PostgreSQL URL raises error."""
-        monkeypatch.setenv("NGM_DATABASE_URL", "mysql://user:pass@host/db")
+    def test_invalid_base_url(self, monkeypatch):
+        """Test that non-HTTP URL raises error."""
+        monkeypatch.setenv("JAWAFDEHI_API_TOKEN", "test-token")
+        monkeypatch.setenv("JAWAFDEHI_API_BASE_URL", "postgresql://example.local")
 
-        with pytest.raises(ValueError, match="must be a PostgreSQL"):
+        with pytest.raises(ValueError, match=r"must be an HTTP\(S\) URL"):
             self.tool._validate_environment()
 
-    def test_valid_postgres_url(self, monkeypatch):
-        """Test that valid PostgreSQL URL passes validation."""
-        url = "postgresql://user:pass@localhost:5432/ngm"
-        monkeypatch.setenv("NGM_DATABASE_URL", url)
+    def test_valid_base_url_and_token(self, monkeypatch):
+        """Test that valid API base URL and token pass validation."""
+        url = "https://portal.jawafdehi.org"
+        token = "token-123"
+        monkeypatch.setenv("JAWAFDEHI_API_BASE_URL", url)
+        monkeypatch.setenv("JAWAFDEHI_API_TOKEN", token)
 
         result = self.tool._validate_environment()
-        assert result == url
+        assert result == (url, token)
 
-    def test_valid_postgres_url_short_form(self, monkeypatch):
-        """Test that postgres:// (short form) passes validation."""
-        url = "postgres://user:pass@localhost:5432/ngm"
-        monkeypatch.setenv("NGM_DATABASE_URL", url)
+    def test_default_base_url_is_used(self, monkeypatch):
+        """Test default base URL is used when env var is omitted."""
+        monkeypatch.delenv("JAWAFDEHI_API_BASE_URL", raising=False)
+        monkeypatch.setenv("JAWAFDEHI_API_TOKEN", "token-123")
 
         result = self.tool._validate_environment()
-        assert result == url
+        assert result[0] == "https://portal.jawafdehi.org"
+        assert result[1] == "token-123"

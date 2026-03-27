@@ -1,29 +1,40 @@
 # Jawafdehi MCP Server
 
-Model Context Protocol (MCP) server providing tools for querying Nepal's judicial data from the NGM (Nepal Governance Modernization) database.
+Model Context Protocol (MCP) server providing tools for integrating LLM workflows with Jawafdehi products, including Jawafdehi.org, Nepal Entity Service (NES), Nepal Government Modernization (NGM), and the `likhit` Markdown conversion tool.
 
-## Features
+## Available MCP Tools
 
 - Modular tool architecture for easy extension
 - **Unified document converter** with smart auto-detection (Likhit + MarkItDown)
-- `ngm_query_judicial`: Execute SELECT queries against NGM court and court case tables
-- `ngm_extract_case_data`: Extract complete judicial case information to Markdown
+- Read-only access with query validation
+- Timeout protection (default 15s)
+- Comprehensive error handling
+
+### Jawafdehi.org
+
 - `search_jawafdehi_cases`: Search published Jawafdehi accountability cases
 - `get_jawafdehi_case`: Retrieve detailed case information
+- `create_jawafdehi_case`: Create a draft Jawafdehi case
+- `patch_jawafdehi_case`: Patch an existing case with RFC 6902 JSON Patch operations
+
+### Nepal Entity Service (NES)
+
 - `submit_nes_change`: Submit NES queue changes through Jawafdehi API
 - `search_nes_entities`: Search Nepal Entity Service for persons and organizations
 - `get_nes_entities`: Retrieve complete entity profiles
 - `get_nes_entity_prefixes`: Fetch valid NES entity prefixes for creation/classification
 - `get_nes_entity_prefix_schema`: Fetch the JSON schema for a specific NES entity prefix
 - `get_nes_tags`: Fetch all available entity tags
+
+### Nepal Government Modernization (NGM)
+
+- `ngm_query_judicial`: Execute SELECT queries against NGM court and court case tables
+- `ngm_extract_case_data`: Extract complete judicial case information to Markdown
+
+### Likhit and Document Conversion
+
+- `convert_to_markdown`: Convert documents with smart auto-detection (Likhit for Nepal government PDFs, MarkItDown for Office documents/web pages/general PDFs, with automatic fallback)
 - `convert_date`: Convert dates between AD and BS calendars
-- `convert_to_markdown`: Convert documents with smart auto-detection
-  - Likhit for Nepal government PDFs (CIAA press releases, etc.)
-  - MarkItDown for Office docs (DOCX, PPTX, XLSX), general PDFs, web pages
-  - Automatic fallback if Likhit fails
-- Read-only access with query validation
-- Timeout protection (default 15s)
-- Comprehensive error handling
 
 ## Architecture
 
@@ -54,9 +65,16 @@ See `tools/example_tool.py` for a template.
 
 ## Installation
 
+Install via PyPI (recommended):
+
 ```bash
-cd services/jawafdehi-mcp
-poetry install
+uv tool install jawafdehi-mcp
+```
+
+If you want the latest unreleased changes, install from GitHub instead:
+
+```bash
+uv tool install git+https://github.com/NewNepal-org/jawafdehi-mcp.git
 ```
 
 ## Configuration
@@ -64,10 +82,11 @@ poetry install
 Set the required environment variables:
 
 ```bash
-export NGM_DATABASE_URL="postgresql://user:password@host:5432/database"
 export JAWAFDEHI_API_BASE_URL="https://portal.jawafdehi.org"
 export JAWAFDEHI_API_TOKEN="your-jawafdehi-api-token"
 ```
+
+To request a Jawafdehi API token, contact `inquiry@jawafdehi.org` or WhatsApp: `+1 206-530-9098`.
 
 ## Usage
 
@@ -79,11 +98,9 @@ Add to your MCP client configuration:
 {
   "mcpServers": {
     "jawafdehi": {
-      "command": "poetry",
-      "args": ["run", "jawafdehi-mcp"],
-      "cwd": "/path/to/services/jawafdehi-mcp",
+      "command": "uvx",
+      "args": ["jawafdehi-mcp"],
       "env": {
-        "NGM_DATABASE_URL": "postgresql://user:password@host:5432/database",
         "JAWAFDEHI_API_BASE_URL": "https://portal.jawafdehi.org",
         "JAWAFDEHI_API_TOKEN": "your-jawafdehi-api-token"
       }
@@ -91,6 +108,13 @@ Add to your MCP client configuration:
   }
 }
 ```
+
+### Jawafdehi Case Drafting and Patching
+
+Use `create_jawafdehi_case` to create draft cases and `patch_jawafdehi_case` to apply
+JSON Patch updates to existing cases by `case_id`.
+
+Both tools require `JAWAFDEHI_API_TOKEN`.
 
 ### NES Queue Submissions
 
@@ -117,7 +141,7 @@ These tools read from `NES_API_BASE_URL`, which defaults to
 
 ### Available Tables
 
-The following tables from NGM database are accessible:
+The following NGM judicial tables are accessible through the Jawafdehi API proxy endpoint (`/api/ngm/query_judicial`):
 
 - `courts` - Court master table (district, high, supreme, special courts)
 - `court_cases` - Court case metadata and registration information

@@ -4,11 +4,16 @@ import json
 import os
 from typing import Any
 
+import httpx
 from mcp.types import TextContent
-from sqlalchemy import create_engine, text
-from sqlalchemy.exc import SQLAlchemyError
 
 from .base import BaseTool
+from .ngm_proxy import (
+    execute_ngm_proxy_query,
+    get_jawafdehi_api_config,
+    rows_to_dicts,
+    sql_quote,
+)
 
 
 class NGMExtractCaseDataTool(BaseTool):
@@ -49,22 +54,31 @@ Court IDs (court_identifier):
             "required": ["court_identifier", "case_number", "file_path"],
         }
 
-    def _validate_environment(self) -> str:
-        db_url = os.getenv("NGM_DATABASE_URL")
+    def _validate_environment(self) -> tuple[str, str]:
+        return get_jawafdehi_api_config()
 
-        if not db_url:
-            raise ValueError(
-                "NGM_DATABASE_URL environment variable is required. "
-                "Example: postgresql://user:password@host:5432/database"
-            )
+    @staticmethod
+    def _sql_quote(value: str) -> str:
+        return sql_quote(value)
 
-        if not db_url.startswith(("postgres://", "postgresql://")):
-            raise ValueError(
-                "NGM_DATABASE_URL must be a PostgreSQL connection string. "
-                f"Got: {db_url[:20]}..."
-            )
+    @staticmethod
+    def _rows_to_dicts(payload: dict[str, Any]) -> list[dict[str, Any]]:
+        return rows_to_dicts(payload)
 
-        return db_url
+    async def _execute_proxy_query(
+        self,
+        client: httpx.AsyncClient,
+        base_url: str,
+        token: str,
+        query: str,
+    ) -> dict[str, Any]:
+        return await execute_ngm_proxy_query(
+            client,
+            base_url,
+            token,
+            query,
+            timeout=15,
+        )
 
     def _format_markdown(
         self, court_info: dict, case_info: dict, hearings: list, entities: list
@@ -227,45 +241,61 @@ Court IDs (court_identifier):
             file_path = os.path.abspath(file_path)
 
         try:
-            db_url = self._validate_environment()
-            engine = create_engine(db_url, pool_pre_ping=True)
+            base_url, token = self._validate_environment()
+            court_id_sql = self._sql_quote(court_identifier)
+            case_no_sql = self._sql_quote(case_number)
 
-            with engine.connect() as conn:
-                # 1. Fetch Court Info
-                result_court = conn.execute(
-                    text("SELECT * FROM courts WHERE identifier = :court_id"),
-                    {"court_id": court_identifier},
-                )
-                court_row = result_court.fetchone()
-                court_info = dict(court_row._mapping) if court_row else {}
-
-                # 2. Fetch Case Info
-                result_case = conn.execute(
-                    text(
-                        "SELECT * FROM court_cases WHERE court_identifier = :court_id AND case_number = :case_no"
+            async with httpx.AsyncClient() as client:
+                court_payload = await self._execute_proxy_query(
+                    client,
+                    base_url,
+                    token,
+                    (
+                        "SELECT * FROM courts "
+                        f"WHERE identifier = '{court_id_sql}' "
+                        "LIMIT 1"
                     ),
-                    {"court_id": court_identifier, "case_no": case_number},
                 )
-                case_row = result_case.fetchone()
-                case_info = dict(case_row._mapping) if case_row else {}
+                court_rows = self._rows_to_dicts(court_payload)
+                court_info = court_rows[0] if court_rows else {}
 
-                # 3. Fetch Entities
-                result_entities = conn.execute(
-                    text(
-                        "SELECT * FROM court_case_entities WHERE court_identifier = :court_id AND case_number = :case_no"
+                case_payload = await self._execute_proxy_query(
+                    client,
+                    base_url,
+                    token,
+                    (
+                        "SELECT * FROM court_cases "
+                        f"WHERE court_identifier = '{court_id_sql}' "
+                        f"AND case_number = '{case_no_sql}' "
+                        "LIMIT 1"
                     ),
-                    {"court_id": court_identifier, "case_no": case_number},
                 )
-                entities = [dict(row._mapping) for row in result_entities.fetchall()]
+                case_rows = self._rows_to_dicts(case_payload)
+                case_info = case_rows[0] if case_rows else {}
 
-                # 4. Fetch Hearings
-                result_hearings = conn.execute(
-                    text(
-                        "SELECT * FROM court_case_hearings WHERE court_identifier = :court_id AND case_number = :case_no"
+                entities_payload = await self._execute_proxy_query(
+                    client,
+                    base_url,
+                    token,
+                    (
+                        "SELECT * FROM court_case_entities "
+                        f"WHERE court_identifier = '{court_id_sql}' "
+                        f"AND case_number = '{case_no_sql}'"
                     ),
-                    {"court_id": court_identifier, "case_no": case_number},
                 )
-                hearings = [dict(row._mapping) for row in result_hearings.fetchall()]
+                entities = self._rows_to_dicts(entities_payload)
+
+                hearings_payload = await self._execute_proxy_query(
+                    client,
+                    base_url,
+                    token,
+                    (
+                        "SELECT * FROM court_case_hearings "
+                        f"WHERE court_identifier = '{court_id_sql}' "
+                        f"AND case_number = '{case_no_sql}'"
+                    ),
+                )
+                hearings = self._rows_to_dicts(hearings_payload)
 
             # 5. Format to Markdown
             markdown_content = self._format_markdown(
@@ -293,10 +323,14 @@ Court IDs (court_identifier):
 
             return [TextContent(type="text", text=json.dumps(response))]
 
-        except SQLAlchemyError as e:
+        except httpx.HTTPError as e:
+            error_msg = str(e).replace('"', '\\"')
+            error_response = f'{{"success": false, "error": "HTTP error: {error_msg}"}}'
+            return [TextContent(type="text", text=error_response)]
+        except RuntimeError as e:
             error_msg = str(e).replace('"', '\\"')
             error_response = (
-                f'{{"success": false, "error": "Database error: {error_msg}"}}'
+                f'{{"success": false, "error": "Proxy error: {error_msg}"}}'
             )
             return [TextContent(type="text", text=error_response)]
         except Exception as e:
@@ -305,6 +339,3 @@ Court IDs (court_identifier):
                 f'{{"success": false, "error": "Unexpected error: {error_msg}"}}'
             )
             return [TextContent(type="text", text=error_response)]
-        finally:
-            if "engine" in locals():
-                engine.dispose()

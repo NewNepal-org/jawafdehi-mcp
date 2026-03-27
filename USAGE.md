@@ -12,7 +12,6 @@ poetry install
 ### 2. Set Environment Variables
 
 ```bash
-export NGM_DATABASE_URL="postgresql://user:password@host:5432/ngm_database"
 export JAWAFDEHI_API_BASE_URL="https://portal.jawafdehi.org"
 export JAWAFDEHI_API_TOKEN="your-jawafdehi-api-token"
 ```
@@ -35,7 +34,6 @@ Add to your MCP client's configuration file (e.g., `.kiro/settings/mcp.json`):
       "args": ["run", "jawafdehi-mcp"],
       "cwd": "/absolute/path/to/services/jawafdehi-mcp",
       "env": {
-        "NGM_DATABASE_URL": "postgresql://user:password@host:5432/database",
         "JAWAFDEHI_API_BASE_URL": "https://portal.jawafdehi.org",
         "JAWAFDEHI_API_TOKEN": "your-jawafdehi-api-token"
       }
@@ -48,7 +46,7 @@ Add to your MCP client's configuration file (e.g., `.kiro/settings/mcp.json`):
 
 ### ngm_query_judicial
 
-Execute SELECT queries against Nepal's judicial database.
+Execute SELECT queries against Nepal's judicial data through Jawafdehi API's NGM proxy endpoint.
 
 **Parameters:**
 - `query` (string, required): SQL SELECT query
@@ -312,12 +310,12 @@ poetry run isort src/ tests/
 
 ## Troubleshooting
 
-### "NGM_DATABASE_URL environment variable is required"
+### "JAWAFDEHI_API_TOKEN environment variable is required"
 
-Make sure you've set the environment variable:
+Make sure you've set the API token:
 
 ```bash
-export NGM_DATABASE_URL="postgresql://user:password@host:5432/database"
+export JAWAFDEHI_API_TOKEN="your-jawafdehi-api-token"
 ```
 
 ### "Only SELECT queries are allowed"
@@ -330,12 +328,13 @@ The `scraped_dates` table is excluded from queries. Use only the allowed tables 
 
 ### Query timeout
 
-If your query takes too long, increase the timeout parameter:
+The upstream proxy API currently enforces a maximum timeout of 15 seconds.
+Keep `timeout` between 1 and 15:
 
 ```json
 {
   "query": "SELECT * FROM court_cases LIMIT 1000",
-  "timeout": 30
+  "timeout": 15
 }
 ```
 

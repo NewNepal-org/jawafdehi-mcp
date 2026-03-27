@@ -1,6 +1,6 @@
 """Tests for NGMExtractCaseDataTool."""
 
-from unittest.mock import MagicMock, mock_open, patch
+from unittest.mock import mock_open, patch
 
 from jawafdehi_mcp.tools.ngm_extract import NGMExtractCaseDataTool
 
@@ -71,40 +71,51 @@ class TestNGMExtractCaseDataTool:
 
     @patch("os.makedirs")
     @patch("builtins.open", new_callable=mock_open)
-    @patch("jawafdehi_mcp.tools.ngm_extract.create_engine")
     @patch(
         "jawafdehi_mcp.tools.ngm_extract.NGMExtractCaseDataTool._validate_environment"
     )
+    @patch(
+        "jawafdehi_mcp.tools.ngm_extract.NGMExtractCaseDataTool._execute_proxy_query"
+    )
     def test_successful_extraction(
-        self, mock_env, mock_create_engine, mock_file_open, mock_makedirs
+        self,
+        mock_execute_proxy_query,
+        mock_env,
+        mock_file_open,
+        mock_makedirs,
     ):
         """Test a full successful extraction flow."""
-        mock_env.return_value = "postgresql://test:test@localhost:5432/test"
-
-        # Mock database connection and returns
-        mock_engine = MagicMock()
-        mock_conn = MagicMock()
-
-        # Mock fetchone for court and case
-        mock_result_single = MagicMock()
-        mock_row = MagicMock()
-        mock_row._mapping = {"full_name_english": "Test Court", "case_number": "123"}
-        mock_result_single.fetchone.return_value = mock_row
-
-        # Mock fetchall for hearings and entities
-        mock_result_multi = MagicMock()
-        mock_result_multi.fetchall.return_value = [mock_row]
-
-        # Return predefined mock results for the sequential execute calls
-        mock_conn.execute.side_effect = [
-            mock_result_single,  # Courts
-            mock_result_single,  # Cases
-            mock_result_multi,  # Entities
-            mock_result_multi,  # Hearings
+        mock_env.return_value = ("https://portal.jawafdehi.org", "test-token")
+        mock_execute_proxy_query.side_effect = [
+            {
+                "success": True,
+                "data": {
+                    "columns": ["full_name_english", "full_name_nepali"],
+                    "rows": [["Test Court", "टेस्ट अदालत"]],
+                },
+            },
+            {
+                "success": True,
+                "data": {
+                    "columns": ["case_number", "case_type", "case_status"],
+                    "rows": [["123", "Writ", "Pending"]],
+                },
+            },
+            {
+                "success": True,
+                "data": {
+                    "columns": ["side", "name", "address"],
+                    "rows": [["Plaintiff", "Ram", "Kathmandu"]],
+                },
+            },
+            {
+                "success": True,
+                "data": {
+                    "columns": ["hearing_date_ad", "decision_type", "judge_names"],
+                    "rows": [["2023-01-01", "Order", "Judge A"]],
+                },
+            },
         ]
-
-        mock_engine.connect.return_value.__enter__.return_value = mock_conn
-        mock_create_engine.return_value = mock_engine
 
         import asyncio
 

@@ -179,7 +179,7 @@ class TestSubmitNESChangeTool:
             }
         )
 
-        assert captured["url"] == "https://portal.jawafdehi.org/api/submit_nes_change"
+        assert captured["url"] == "https://jawafdehi.invalid/api/submit_nes_change"
         assert captured["headers"] == {"Authorization": "Token secret-token"}
         assert captured["json"]["auto_approve"] is True
 
