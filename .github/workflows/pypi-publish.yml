@@ -17,22 +17,6 @@ jobs:
     timeout-minutes: 20
     permissions:
       contents: read
-    env:
-      NGM_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_ngm
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: test_ngm
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Set up Python

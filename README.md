@@ -1,6 +1,6 @@
 # Jawafdehi MCP Server
 
-Model Context Protocol (MCP) server providing tools for querying Nepal's judicial data from the NGM (Nepal Governance Modernization) database.
+Model Context Protocol (MCP) server providing tools for querying Nepal's judicial data from the NGM (Nepal Governance Modernization) system via Jawafdehi API.
 
 ## Features
 
@@ -64,7 +64,6 @@ poetry install
 Set the required environment variables:
 
 ```bash
-export NGM_DATABASE_URL="postgresql://user:password@host:5432/database"
 export JAWAFDEHI_API_BASE_URL="https://portal.jawafdehi.org"
 export JAWAFDEHI_API_TOKEN="your-jawafdehi-api-token"
 ```
@@ -83,7 +82,6 @@ Add to your MCP client configuration:
       "args": ["run", "jawafdehi-mcp"],
       "cwd": "/path/to/services/jawafdehi-mcp",
       "env": {
-        "NGM_DATABASE_URL": "postgresql://user:password@host:5432/database",
         "JAWAFDEHI_API_BASE_URL": "https://portal.jawafdehi.org",
         "JAWAFDEHI_API_TOKEN": "your-jawafdehi-api-token"
       }
@@ -117,7 +115,7 @@ These tools read from `NES_API_BASE_URL`, which defaults to
 
 ### Available Tables
 
-The following tables from NGM database are accessible:
+The following NGM judicial tables are accessible through the Jawafdehi API proxy endpoint (`/api/ngm/query_judicial`):
 
 - `courts` - Court master table (district, high, supreme, special courts)
 - `court_cases` - Court case metadata and registration information
