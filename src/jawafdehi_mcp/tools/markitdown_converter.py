@@ -12,11 +12,9 @@ from .base import BaseTool
 class MarkItDownConverterTool(BaseTool):
     """Tool for converting various document formats to Markdown.
 
-    Wraps the markitdown library to convert documents (DOCX, PPTX, XLSX, PDFs, web pages)
-    into Markdown format. This serves as a fallback for document types not supported by Likhit.
-
-    Note: May not accurately convert Nepali text in PDFs. For Nepal government documents
-    with Nepali text, prefer using the likhit_extract tool.
+    Wraps MarkItDown to convert documents (DOCX, PPTX, XLSX, PDFs, web pages)
+    into Markdown format. When plugins are enabled, plugin converters can extend
+    MarkItDown's default behavior.
     """
 
     @property
@@ -27,13 +25,12 @@ class MarkItDownConverterTool(BaseTool):
     def description(self) -> str:
         return (
             "Convert documents to Markdown from file:, http:, https:, or data: URIs. "
-            "Handles DOCX, PPTX, XLSX, PDFs, and web pages. "
-            "Use this as a fallback for document types not supported by Likhit.\n\n"
-            "⚠️ WARNING: May not accurately convert Nepali text in PDFs. "
-            "For Nepal government documents with Nepali text, use likhit_extract instead.\n\n"
+            "Handles DOCX, PPTX, XLSX, PDFs, and web pages through MarkItDown. "
+            "When plugins are enabled, plugin-based converters such as `likhit` may "
+            "intercept supported documents.\n\n"
             "Supports:\n"
             "- Office documents: DOCX, PPTX, XLSX\n"
-            "- PDFs (limited Nepali text support)\n"
+            "- PDFs\n"
             "- Web pages: http://, https:// URLs\n"
             "- Local files: file:///absolute/path/to/file\n"
             "- Data URIs: data:text/plain;base64,...\n\n"
@@ -67,13 +64,24 @@ class MarkItDownConverterTool(BaseTool):
                     "type": "boolean",
                     "description": (
                         "Optional. Enable MarkItDown plugins for enhanced conversion. "
-                        "Defaults to False."
+                        "Defaults to True."
                     ),
-                    "default": False,
+                    "default": True,
                 },
             },
             "required": ["uri"],
         }
+
+    def _get_output_path(self, arguments: dict[str, Any], uri: str) -> Path | None:
+        """Write a sibling markdown file by default for local file URIs."""
+        output_path = arguments.get("output_path")
+        if output_path:
+            return Path(output_path)
+
+        if uri.startswith("file://"):
+            return Path(uri.replace("file://", "")).with_suffix(".md")
+
+        return None
 
     async def execute(self, arguments: dict[str, Any]) -> list[TextContent]:
         uri = arguments.get("uri")
@@ -106,20 +114,19 @@ class MarkItDownConverterTool(BaseTool):
                 ]
 
         try:
-            enable_plugins = arguments.get("enable_plugins", False)
+            enable_plugins = arguments.get("enable_plugins", True)
             converter = MarkItDown(enable_plugins=enable_plugins)
             result = converter.convert_uri(uri)
             markdown = result.markdown
 
-            output_path = arguments.get("output_path")
+            output_path = self._get_output_path(arguments, uri)
             if output_path:
-                out = Path(output_path)
-                out.parent.mkdir(parents=True, exist_ok=True)
-                out.write_text(markdown, encoding="utf-8")
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.write_text(markdown, encoding="utf-8")
                 return [
                     TextContent(
                         type="text",
-                        text=f"✅ Markdown written to {out}",
+                        text=f"✅ Markdown written to {output_path}",
                     )
                 ]
 

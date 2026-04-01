@@ -1,20 +1,16 @@
-"""Likhit document extraction tool for converting Nepal government PDFs to Markdown."""
+"""Deprecated compatibility wrapper for plugin-backed Nepali document extraction."""
 
 from pathlib import Path
 from typing import Any
 
-import likhit
+from markitdown import MarkItDown
 from mcp.types import TextContent
 
 from .base import BaseTool
 
 
 class LikhitExtractTool(BaseTool):
-    """Tool for extracting Nepal government documents into structured Markdown.
-
-    Wraps the likhit library to convert PDF documents (e.g. CIAA press releases)
-    into clean Markdown with YAML frontmatter containing extracted metadata.
-    """
+    """Compatibility tool for local plugin-backed extraction."""
 
     @property
     def name(self) -> str:
@@ -23,10 +19,10 @@ class LikhitExtractTool(BaseTool):
     @property
     def description(self) -> str:
         return (
-            "Convert a Nepal government PDF document to structured Markdown. "
-            "Uses the likhit extraction pipeline to parse PDFs with Nepali text "
-            "(including Kalimati font fixing) and produce clean Markdown with "
-            "YAML frontmatter.\n\n"
+            "Deprecated compatibility wrapper around MarkItDown with plugins enabled. "
+            "This keeps the legacy `likhit_extract` tool shape for local PDF files, "
+            "but conversion now flows through MarkItDown and the installed `likhit` "
+            "plugin rather than `likhit.convert(...)`.\n\n"
             "The file_path must point to a PDF file accessible on the local filesystem."
         )
 
@@ -49,6 +45,13 @@ class LikhitExtractTool(BaseTool):
             },
             "required": ["file_path"],
         }
+
+    def _get_output_path(self, arguments: dict[str, Any], path: Path) -> Path:
+        """Write a sibling markdown file by default for local PDFs."""
+        output_path = arguments.get("output_path")
+        if output_path:
+            return Path(output_path)
+        return path.with_suffix(".md")
 
     async def execute(self, arguments: dict[str, Any]) -> list[TextContent]:
         file_path = arguments.get("file_path")
@@ -87,27 +90,18 @@ class LikhitExtractTool(BaseTool):
             ]
 
         try:
-            convert_fn = getattr(likhit, "convert", None)
-            if not convert_fn:
-                raise RuntimeError(
-                    "Installed likhit package does not expose likhit.convert(file_path)."
+            converter = MarkItDown(enable_plugins=True)
+            markdown = converter.convert_uri(path.resolve().as_uri()).markdown
+
+            out = self._get_output_path(arguments, path)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(markdown, encoding="utf-8")
+            return [
+                TextContent(
+                    type="text",
+                    text=f"Markdown written to {out}\n\n{markdown}",
                 )
-
-            markdown = convert_fn(str(path))
-
-            output_path = arguments.get("output_path")
-            if output_path:
-                out = Path(output_path)
-                out.parent.mkdir(parents=True, exist_ok=True)
-                out.write_text(markdown, encoding="utf-8")
-                return [
-                    TextContent(
-                        type="text",
-                        text=f"Markdown written to {out}\n\n{markdown}",
-                    )
-                ]
-
-            return [TextContent(type="text", text=markdown)]
+            ]
 
         except Exception as e:
             return [
