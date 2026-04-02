@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from jawafdehi_mcp.server import TOOL_MAP
 from jawafdehi_mcp.tools.likhit_extract import LikhitExtractTool
 
 
@@ -18,6 +19,7 @@ class TestLikhitExtractTool:
 
     def test_tool_has_description(self):
         assert "Deprecated compatibility wrapper" in self.tool.description
+        assert "saved beside the PDF" in self.tool.description
 
     def test_input_schema_required_fields(self):
         schema = self.tool.input_schema
@@ -28,6 +30,9 @@ class TestLikhitExtractTool:
         schema = self.tool.input_schema
         assert "output_path" in schema["properties"]
         assert "doc_type" not in schema["properties"]
+
+    def test_tool_registered_with_server(self):
+        assert "likhit_extract" in TOOL_MAP
 
     @pytest.mark.asyncio
     async def test_missing_file_path(self):
@@ -81,7 +86,7 @@ class TestLikhitExtractTool:
 
         assert len(result) == 1
         assert "Markdown written to" in result[0].text
-        assert fake_markdown in result[0].text
+        assert fake_markdown not in result[0].text
         mock_markitdown.assert_called_once_with(enable_plugins=True)
         mock_converter.convert_uri.assert_called_once_with(pdf_file.resolve().as_uri())
         assert output_file.exists()
@@ -111,7 +116,7 @@ class TestLikhitExtractTool:
 
         assert len(result) == 1
         assert "Markdown written to" in result[0].text
-        assert fake_markdown in result[0].text
+        assert fake_markdown not in result[0].text
         assert output_file.exists()
         assert output_file.read_text(encoding="utf-8") == fake_markdown
 
