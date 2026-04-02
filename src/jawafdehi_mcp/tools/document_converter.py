@@ -142,6 +142,8 @@ class DocumentConverterTool(BaseTool):
             converter = MarkItDown(enable_plugins=enable_plugins)
             result = converter.convert_uri(source)
             return result.markdown, None
+        except (OSError, ValueError) as e:
+            return "", str(e)
         except Exception as e:
             return "", str(e)
 
