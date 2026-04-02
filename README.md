@@ -33,7 +33,7 @@ Model Context Protocol (MCP) server providing tools for integrating LLM workflow
 
 ### Likhit and Document Conversion
 
-- `convert_to_markdown`: Convert documents through MarkItDown with plugins enabled by default; the `likhit` plugin adds Nepal-specific handling for supported PDFs and legacy `.doc` files
+- `convert_to_markdown`: Convert documents through MarkItDown with plugins enabled by default; the `likhit` plugin adds Nepal-specific handling for supported PDFs and legacy `.doc` files. Markdown is returned directly by default, or written to a file when `output_path` is provided
 - `convert_date`: Convert dates between AD and BS calendars
 
 ## Architecture

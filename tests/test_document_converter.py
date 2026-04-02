@@ -72,10 +72,9 @@ class TestDocumentConverterTool:
 
     @pytest.mark.asyncio
     async def test_local_pdf_uses_markitdown_with_plugins_by_default(self, tmp_path):
-        """Local PDFs should route through MarkItDown and write a sibling markdown file."""
+        """Local PDFs should route through MarkItDown and return markdown by default."""
         pdf_file = tmp_path / "ciaa.pdf"
         pdf_file.write_bytes(b"%PDF-1.4 fake content")
-        output_file = tmp_path / "ciaa.md"
 
         fake_markdown = "# Converted with plugin\n"
         mock_result = MagicMock()
@@ -91,18 +90,15 @@ class TestDocumentConverterTool:
 
         assert len(result) == 1
         assert "MarkItDown + plugins" in result[0].text
-        assert "Markdown written to" in result[0].text
+        assert fake_markdown in result[0].text
         mock_markitdown.assert_called_once_with(enable_plugins=True)
         mock_converter.convert_uri.assert_called_once_with(pdf_file.resolve().as_uri())
-        assert output_file.exists()
-        assert output_file.read_text(encoding="utf-8") == fake_markdown
 
     @pytest.mark.asyncio
     async def test_markitdown_direct_with_file_path(self, tmp_path):
-        """Non-PDF local files should still use MarkItDown and write markdown."""
+        """Non-PDF local files should still use MarkItDown and return markdown."""
         docx_file = tmp_path / "document.docx"
         docx_file.write_bytes(b"fake docx content")
-        output_file = tmp_path / "document.md"
 
         fake_markdown = "# Document Title\n\nContent\n"
         mock_result = MagicMock()
@@ -119,19 +115,16 @@ class TestDocumentConverterTool:
 
         assert len(result) == 1
         assert "MarkItDown + plugins" in result[0].text
-        assert "Markdown written to" in result[0].text
+        assert fake_markdown in result[0].text
         mock_converter.convert_uri.assert_called_once()
         call_args = mock_converter.convert_uri.call_args[0][0]
         assert call_args == docx_file.resolve().as_uri()
-        assert output_file.exists()
-        assert output_file.read_text(encoding="utf-8") == fake_markdown
 
     @pytest.mark.asyncio
     async def test_legacy_doc_uses_unified_plugin_enabled_path(self, tmp_path):
         """Legacy DOC files should be accepted by the unified MarkItDown path."""
         doc_file = tmp_path / "legacy.doc"
         doc_file.write_bytes(b"fake doc content")
-        output_file = tmp_path / "legacy.md"
 
         fake_markdown = "# Legacy Doc\n"
         mock_result = MagicMock()
@@ -147,11 +140,9 @@ class TestDocumentConverterTool:
             result = await self.tool.execute({"file_path": str(doc_file)})
 
         assert len(result) == 1
-        assert "Markdown written to" in result[0].text
+        assert fake_markdown in result[0].text
         mock_markitdown.assert_called_once_with(enable_plugins=True)
         mock_converter.convert_uri.assert_called_once_with(doc_file.resolve().as_uri())
-        assert output_file.exists()
-        assert output_file.read_text(encoding="utf-8") == fake_markdown
 
     @pytest.mark.asyncio
     async def test_markitdown_with_uri(self):
@@ -246,10 +237,9 @@ class TestDocumentConverterTool:
 
     @pytest.mark.asyncio
     async def test_file_uri_conversion(self, tmp_path):
-        """Test that file:// URIs write a sibling markdown file by default."""
+        """Test that file:// URIs are converted and returned directly."""
         pdf_file = tmp_path / "test.pdf"
         pdf_file.write_bytes(b"%PDF-1.4 fake")
-        output_file = tmp_path / "test.md"
 
         fake_markdown = "# Test\n"
 
@@ -267,9 +257,36 @@ class TestDocumentConverterTool:
         assert len(result) == 1
         assert "MarkItDown + plugins" in result[0].text
         assert "Error" not in result[0].text
+        assert fake_markdown in result[0].text
         mock_converter.convert_uri.assert_called_once_with(pdf_file.resolve().as_uri())
-        assert output_file.exists()
-        assert output_file.read_text(encoding="utf-8") == fake_markdown
+
+    @pytest.mark.asyncio
+    async def test_rejects_output_path_matching_source_file(self, tmp_path):
+        """Explicit output_path must not overwrite the source file."""
+        markdown_file = tmp_path / "already.md"
+        markdown_file.write_text("# Existing\n", encoding="utf-8")
+
+        fake_markdown = "# Converted\n"
+        mock_result = MagicMock()
+        mock_result.markdown = fake_markdown
+
+        with patch(
+            "jawafdehi_mcp.tools.document_converter.MarkItDown"
+        ) as mock_markitdown:
+            mock_converter = MagicMock()
+            mock_converter.convert_uri.return_value = mock_result
+            mock_markitdown.return_value = mock_converter
+
+            result = await self.tool.execute(
+                {
+                    "file_path": str(markdown_file),
+                    "output_path": str(markdown_file),
+                }
+            )
+
+        assert len(result) == 1
+        assert "output_path must differ from the source file" in result[0].text
+        assert markdown_file.read_text(encoding="utf-8") == "# Existing\n"
 
     @pytest.mark.asyncio
     async def test_localhost_file_uri_conversion(self, tmp_path):

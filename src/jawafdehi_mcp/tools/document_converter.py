@@ -26,12 +26,16 @@ class DocumentConverterTool(BaseTool):
             "- Uses MarkItDown with plugins enabled by default\n"
             "- The `likhit` plugin provides Nepal-specific handling for supported "
             "born-digital PDFs and legacy `.doc` files when installed\n"
-            "- Other supported formats continue through MarkItDown's standard converters\n\n"
+            "- Other supported formats continue through MarkItDown's standard "
+            "converters\n\n"
             "**Supported inputs:**\n"
             "- Local files via `file_path`\n"
             "- Local files via `file://` URIs\n"
             "- Web pages and remote documents via `http://` and `https://`\n"
             "- Data URIs such as `data:text/plain;base64,...`\n\n"
+            "**Output behavior:**\n"
+            "- Returns Markdown directly by default\n"
+            "- Set `output_path` to save the converted Markdown to a file instead\n\n"
             "Set `enable_plugins=false` only to bypass MarkItDown plugins for "
             "compatibility or troubleshooting."
         )
@@ -64,14 +68,16 @@ class DocumentConverterTool(BaseTool):
                     "type": "string",
                     "description": (
                         "Optional. Absolute path to write the converted Markdown file. "
-                        "Parent directories are created automatically."
+                        "Parent directories are created automatically. "
+                        "If not provided, the markdown content is returned directly."
                     ),
                 },
                 "enable_plugins": {
                     "type": "boolean",
                     "description": (
                         "Optional. Enable MarkItDown plugins. Defaults to True. "
-                        "Disable only to bypass plugin-based converters such as `likhit`."
+                        "Disable only to bypass plugin-based converters such as "
+                        "`likhit`."
                     ),
                     "default": True,
                 },
@@ -109,21 +115,11 @@ class DocumentConverterTool(BaseTool):
 
         raise ValueError("Must specify either 'file_path' or 'uri'.")
 
-    def _get_output_path(
-        self, arguments: dict[str, Any], source: str, is_local_file: bool
-    ) -> Path | None:
-        """Resolve the output markdown path.
-
-        For local files, write a sibling `.md` file by default so callers get a
-        tangible artifact without needing to pass `output_path`.
-        """
+    def _get_output_path(self, arguments: dict[str, Any]) -> Path | None:
+        """Resolve an explicitly requested output markdown path."""
         output_path = arguments.get("output_path")
         if output_path:
             return Path(output_path)
-
-        if is_local_file:
-            source_path = Path(source)
-            return source_path.with_suffix(".md")
 
         return None
 
@@ -137,7 +133,9 @@ class DocumentConverterTool(BaseTool):
             tuple: (markdown_content, error_message)
         """
         try:
-            if not source.lower().startswith(("http://", "https://", "file://", "data:")):
+            if not source.lower().startswith(
+                ("http://", "https://", "file://", "data:")
+            ):
                 source = Path(source).resolve().as_uri()
 
             enable_plugins = arguments.get("enable_plugins", True)
@@ -187,10 +185,20 @@ class DocumentConverterTool(BaseTool):
                 )
             ]
 
-        # Write to output file if specified or implied for local files
-        output_path = self._get_output_path(arguments, source, is_local_file)
+        # Write to output file only when explicitly requested
+        output_path = self._get_output_path(arguments)
         if output_path:
             try:
+                if is_local_file:
+                    source_path = Path(source).resolve(strict=False)
+                    target_path = output_path.resolve(strict=False)
+                    if target_path == source_path:
+                        return [
+                            TextContent(
+                                type="text",
+                                text="Error: output_path must differ from the source file.",
+                            )
+                        ]
                 output_path.parent.mkdir(parents=True, exist_ok=True)
                 output_path.write_text(markdown, encoding="utf-8")
                 return [
